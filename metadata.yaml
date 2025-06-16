@@ -1,6 +1,6 @@
-name: r1-filter # 这是你的插件的唯一识别名。
-desc: 可选择是否过滤推理模型的思考内容 # 插件简短描述
-help:  # 插件的帮助信息
-version: v1.0.0 # 插件版本号。格式：v1.1.1 或者 v1.1
-author: Soulter # 作者
-repo: https://github.com/Soulter/astrbot_plugin_r1_filter # 插件的仓库地址
+name: r1_filter_hina
+desc: 過濾推理模型思維鏈，並在需要偵錯時顯示思維鏈
+help:  
+version: v1.0.3
+author: Soulter, Powered by Claude 4s
+repo: https://github.com/Magstic/astrbot_plugin_r1_filter_hina
