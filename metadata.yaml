@@ -1,6 +1,6 @@
 name: r1_filter_hina
 desc: 過濾推理模型思維鏈，並在需要偵錯時顯示思維鏈
 help:  
-version: v1.0.3
-author: Soulter, Powered by Claude 4s
+version: v1.0.4
+author: Soulter, Powered by Claude 4s & Gemini 2.5 Pro
 repo: https://github.com/Magstic/astrbot_plugin_r1_filter_hina

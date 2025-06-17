@@ -1,64 +1,61 @@
-# R1 Filter Hina - AstrBot 思維鏈過濾插件
+# R1 Filter Hina - AstrBot 思維鏈過濾捕獲插件
 
-一個用於過濾和記錄 AI 思維鏈的 AstrBot 插件，支援持久化儲存和 Markdown 格式輸出。
+Powered by Claude 4s & Gemini 2.5 Pro
 
-該模組根據個人的需求客制化，因此未能遵循開發規範。
+一個極簡化的 AstrBot 插件，專注於捕獲並匯出 AI 的思維鏈。
 
-Powered by Claude 4s, All.
+根據個人需求客制化，代碼規範未遵循設計規範。
 
-## 功能特色
+## 核心功能
 
-- 🤔 可選擇是否顯示 AI 的思維過程
-- 📝 支援 `/think` 指令查看上一次對話的思維鏈
-- 💾 支援將思維記錄持久化儲存
-- 📊 提供完整的思維鏈管理和統計功能
-- 📘 支援 Markdown 格式匯出，便於閱讀
+- **自動捕獲**：在每次對話後，自動捕獲語言模型的完整對話和思維鏈（Thought Process）。
+- **指令觸發**：使用簡單的 `/think` 指令，即可在聊天介面預覽最近一次的思維鏈。
+- **JSON 匯出**：執行 `/think` 指令後，插件會將包含**思維鏈、用戶提問、模型回覆**的完整記錄，自動保存到一個獨立的 JSON 檔中，便於後續分析和存檔。
+- **持久化緩存**：所有對話的最新思維鏈都會被快取檔捕獲，確保即使在重啟後也能查詢到上一次的記錄。
 
-## 指令列表
+## 唯一指令
 
-- `/think` (別名: 思考、思維鏈) - 查看上次對話的思維過程
-- `/think_clear` (別名: 清空思考、清理思維鏈) - 清空當前使用者的思維記錄
-- `/think_status` (別名: 狀態) - 查看插件運行狀態
-- `/think_export` (別名: 匯出思維、導出記錄) - 匯出思維記錄檔案
-- `/think_stats` (別名: 儲存統計、空間統計) - 查看儲存空間使用統計
+- `/think` (別名: `思考`, `思維鏈`)
+  - **功能**: 顯示上一次對話的思維鏈預覽，並將完整記錄匯出為 JSON 檔案到指定的儲存目錄。
 
-## 配置項目
+## 配置項
 
-```json
-{
-    "display_reasoning_text": true,    // 是否顯示思維過程
-    "max_think_length": 600,          // /think 指令輸出的最大長度
-    "enable_persistence": true,        // 是否啟用持久化儲存
-    "save_as_markdown": true,         // 是否同時保存為 Markdown 格式
-    "max_file_size_mb": 3,           // 單個檔案大小限制(MB)
-    "records_per_file": 15,          // 每個檔案最大記錄數
-    "max_records_per_user": 30,      // 每用戶最大保留檔案數
-    "storage_dir": ""                // 自訂儲存目錄(可選)
-}
-```
+- **`max_think_length`**: `int`, 預設 `800`
+  - 顯示在聊天中的思維鏈最大長度。超出的部分會被截斷。
+- **`enable_persistence`**: `bool`, 預設 `true`
+  - 是否啟用持久化，將思維鏈保存到本地檔案。
+- **`storage_dir`**: `string`, 預設 `""`
+  - 思維鏈檔案的儲存目錄。留空則預設在插件目錄下的 `hina_thoughts_data` 資料夾。
+- **`log_rotation_count`**: `int`, 預設 `20`
+  - **[新功能]** 每個永久日誌檔案中儲存的最大記錄數量。達到此數量後會自動創建新檔案（例如 `hina_thoughts_log_2.json`）。這可以將每一次的思維鏈都永久記錄下來。設為 `0` 或 `負數` 可禁用此功能。
+
+### 存儲機制說明
+
+插件採用雙軌制存儲：
+1.  **會話快照 (`hina_thoughts_cache.json`)**: 一個臨時檔案，只保存每個對話的**最新**思維鏈，用於 `/think` 指令的快速響應和插件重啟後的狀態恢復。此檔案會被覆蓋。
+2.  **永久日誌 (`hina_thoughts_log_*.json`)**: 永久記錄**每一次**對話的思維鏈，並根據 `log_rotation_count` 的設置自動分割檔案。這是您的思維資料庫。
+3.  **手動匯出 (`thought_*.json`)**: 每次使用 `/think` 指令時，會將當前最新的思維鏈**也**匯出為一個獨立的、帶時間戳的檔案，方便您針對性地查看某次特定對話。
+
 
 ## 儲存結構
 
+插件會在指定的 `storage_dir`（或預設的 `hina_thoughts_data`）目錄下創建以下三種類型的檔案：
+
 ```
-r1_thoughts_data/
-├── json/                 # JSON 格式原始數據
-│   └── {user_id}/
-│       └── YYYY-MM-DD.jsonl
-├── markdown/             # Markdown 格式報告
-│   └── {user_id}/
-│       └── YYYY-MM-DD_Hina_Think.md
-└── cache/               # 快取檔案
-    └── last_reasoning.json
+hina_thoughts_data/
+├── hina_thoughts_cache.json              # 【狀態快照】會被覆蓋，只存最新狀態。
+├── hina_thoughts_log_1.json              # 【永久日誌】會追加記錄，寫滿後生成 _2.json。
+└── thought_{user_id}_{timestamp}.json      # 【手動匯出】執行 /think 時生成，方便單獨查看。
 ```
 
 ## 安裝方式
 
-1. 將插件檔案複製到 AstrBot 的插件目錄
-2. 重新載入 Bot 或重啟 AstrBot
-3. 使用 `/think_status` 確認插件是否正常運行
+1.  將插件檔案夾複製到 AstrBot 的 `plugins` 目錄。
+2.  在 AstrBot 的配置檔案中啟用本插件。
+3.  重新載入插件或重啟 AstrBot。
+4.  與 Bot 對話，然後使用 `/think` 指令測試功能是否正常。
 
 ## 注意事項
 
-- 檔案會自動按日期和大小分割
-- 超過限制的舊檔案會自動刪除
-- 建議定期備份重要的思維記錄
+- 請確保插件對指定的 `storage_dir` 目錄有讀寫權限。
+- 匯出的 JSON 檔會根據用戶 ID 和時間戳命名，不會自動覆蓋或刪除。
