@@ -1,6 +1,6 @@
-name: r1_filter_hina
-desc: 過濾推理模型思維鏈，並在需要偵錯時顯示思維鏈
+name: Hina Think
+desc: 過濾推理模型思維鏈，並在需要偵錯時顯示思維鏈，雲端存儲並輸出聊天記錄
 help:  
 version: v1.0.4
 author: Soulter, Powered by Claude 4s & Gemini 2.5 Pro
-repo: https://github.com/Magstic/astrbot_plugin_r1_filter_hina
+repo: https://github.com/Magstic/astrbot_plugin_hina_think

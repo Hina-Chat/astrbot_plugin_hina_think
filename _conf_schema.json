@@ -1,22 +1,98 @@
 {
-    "max_think_length": {
-        "description": "顯示在聊天中的思維鏈最大長度。超出的部分會被截斷。",
-        "type": "int",
-        "default": 800
+    "general": {
+        "description": "通用設置",
+        "type": "object",
+        "items": {
+            "max_think_length": {
+                "description": "思維鏈最大長度",
+                "type": "int",
+                "default": 800,
+                "hint": "顯示在聊天中的思維鏈最大長度。超出的部分會被截斷。"
+            },
+            "enable_persistence": {
+                "description": "本地儲存",
+                "type": "bool",
+                "default": true,
+                "hint": "是否啟用持久化，將思維鏈保存到本地檔案。"
+            },
+            "storage_dir": {
+                "description": "日誌檔儲存目錄",
+                "type": "text",
+                "default": "",
+                "hint": "思維鏈檔案的儲存目錄。留空則預設在插件目錄下的 hina_thoughts_data 資料夾。"
+            },
+            "log_rotation_count": {
+                "description": "日誌檔最大條數",
+                "type": "int",
+                "default": 20,
+                "hint":"每個思維鏈日誌檔案中儲存的最大記錄數量。達到此數量後會創建新檔案。設為 0 或負數可禁用日誌記錄。"
+            }
+        }
     },
-    "enable_persistence": {
-        "description": "是否啟用持久化，將思維鏈保存到本地檔案。",
-        "type": "bool",
-        "default": true
+    "r2": {
+        "description": "Cloudflare R2",
+        "type": "object",
+        "items": {
+            "r2_account_id": {
+                "description": "Cloudflare R2 Account ID",
+                "type": "string",
+                "default": ""
+            },
+            "r2_access_key_id": {
+                "description": "Cloudflare R2 Access Key ID",
+                "type": "string",
+                "default": ""
+            },
+            "r2_secret_access_key": {
+                "description": "Cloudflare R2 Secret Access Key",
+                "type": "string",
+                "default": ""
+            },
+            "r2_bucket_name": {
+                "description": "Cloudflare R2 Bucket Name",
+                "type": "string",
+                "default": ""
+            },
+            "r2_custom_domain": {
+                "description": "自訂域名",
+                "type": "string",
+                "default": "",
+                "hint": "綁定到 R2 Bucket 的自訂域名，留空則使用預設 R2 域名。"
+            }
+        }
     },
-    "storage_dir": {
-        "description": "思維鏈檔案的儲存目錄。留空則默認在插件目錄下的 hina_thoughts_data 資料夾。",
-        "type": "text",
-        "default": ""
-    },
-    "log_rotation_count": {
-        "description": "每個思維鏈日誌檔案中儲存的最大記錄數量。達到此數量後會創建新檔案。設為 0 或負數可禁用日誌記錄。",
-        "type": "int",
-        "default": 20
+    "qrcode": {
+        "description": "QR Code 樣式",
+        "type": "object",
+        "items": {
+            "qr_box_size": {
+                "description": "碼點像素大小。",
+                "type": "int",
+                "default": 5
+            },
+            "qr_border": {
+                "description": "邊框寬度。",
+                "type": "int",
+                "default": 2
+            },
+            "qr_module_drawer": {
+                "description": "碼點形狀",
+                "type": "string",
+                "default": "square",
+                "hint": "square (方塊), gapped (間隙方塊), circle (圓點), rounded (圓角)"
+            },
+            "qr_image_mask_path": {
+                "description": "圖片蒙版",
+                "type": "string",
+                "default": "",
+                "hint": "圖片蒙版，實現圖片紋理效果。留空則使用預設的黑白樣式。"
+            },
+            "qr_logo_path": {
+                "description": "中心 LOGO",
+                "type": "string",
+                "default": "",
+                "hint": "在 QR Code 中心嵌入 LOGO 圖片。"
+            }
+        }
     }
 }
