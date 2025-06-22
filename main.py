@@ -27,7 +27,7 @@ from astrbot.api.provider import LLMResponse
 from openai.types.chat.chat_completion import ChatCompletion
 
 
-@register("r1-filter", "Hina", "過濾推理模型思維鏈，並在需要偵錯時使用 /think 顯示思維鏈", "3.0.1", 'https://github.com/Magstic/astrbot_plugin_r1_filter_hina')
+@register("astrbot_plugin_hina_think", "Soulter/Magstic Powered by Claude 4s & Gemini 2.5 Pro", "過濾推理模型思維鏈，並在需要偵錯時顯示思維鏈，雲端存儲並輸出聊天記錄", "1.0.5", 'https://github.com/Magstic/astrbot_plugin_hina_think')
 class R1Filter(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)

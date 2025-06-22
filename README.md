@@ -61,3 +61,13 @@ Powered by Claude 4s & Gemini 2.5 Pro, All.
 
 > [!NOTE]
 > 當使用圖片蒙版時，背景會被設置為透明。您可以同時使用圖片蒙版和中心 Logo，創造出獨一無二的視覺效果。
+
+## 許可證
+
+本插件使用了以下第三方套件：
+
+| 套件       | 授權       | 來源                                               |
+|------------|------------|----------------------------------------------------|
+| boto3      | Apache 2.0 | https://github.com/boto/boto3                      |
+| qrcode[pil]| BSD / HPND | https://github.com/lincolnloop/python-qrcode      |
+| Pillow     | HPND       | https://github.com/python-pillow/Pillow           |
