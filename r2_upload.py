@@ -1,7 +1,12 @@
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError, BotoCoreError
 from pathlib import Path
 import logging
+
+class R2UploadError(Exception):
+    """Custom exception for R2 upload failures."""
+    pass
 
 def upload_file_to_r2(local_path: Path, object_key: str, r2_account_id: str, r2_access_key_id: str, r2_secret_access_key: str, r2_bucket_name: str, r2_custom_domain: str = "") -> str:
     """
@@ -24,7 +29,11 @@ def upload_file_to_r2(local_path: Path, object_key: str, r2_account_id: str, r2_
         aws_secret_access_key=r2_secret_access_key,
         config=boto_config
     )
-    s3_client.upload_file(str(local_path), r2_bucket_name, object_key)
+    try:
+        s3_client.upload_file(str(local_path), r2_bucket_name, object_key)
+    except (ClientError, BotoCoreError) as e:
+        logging.error(f"R2 Upload Failed for object {object_key}: {e}")
+        raise R2UploadError(f"Failed to upload to R2: {e}") from e
 
     if r2_custom_domain:
         return f"https://{r2_custom_domain}/{object_key}"

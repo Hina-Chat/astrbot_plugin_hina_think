@@ -1,73 +1,80 @@
-# Hina Think
+# Hina Think Plugin for AstrBot
 
-Powered by Claude 4s & Gemini 2.5 Pro, All.
+**Version: 2.0.0**
 
-本插件基於 [R1-filter](https://github.com/Soulter/astrbot_plugin_r1_filter) 二次開發。
+一個 AstrBot 模組，專注於捕獲並匯出 AI 的思維鏈。本插件基於 [R1-filter](https://github.com/Soulter/astrbot_plugin_r1_filter) 二次開發，提供從開發調試到成果展示的全鏈路解決方案。
 
-一個 AstrBot 模組，專注於捕獲並匯出 AI 的思維鏈。
+## ✨ v2.0.0 核心架構升級
 
-根據個人需求客制化，代碼規範未遵循設計規範。如果您有興趣規範化開發，請隨意。
+v2.0.0 版本引入了全新的 **增量快照 (Incremental Snapshot)** 雲端歸檔機制，取代了舊有的覆蓋式存儲模型。這是一次核心架構的重大升級，旨在提供更高效、更安全、更具追溯性的數據管理體驗。
 
-## 功能概述
+- **效率革命**: 每次導出不再是上傳完整的對話歷史，而是**僅上傳自上次導出以來的新增記錄**。這極大地降低了數據傳輸量，節省了網絡帶寬和雲存儲成本。
+- **數據保險箱**: 每次導出都會在雲端創建一個帶時間戳的獨立 JSON 檔案，形成一個不可變的、版本化的歷史檔案庫。徹底告別因意外覆蓋導致的數據丟失風險。
+- **精準回溯**: 清晰的版本歷史讓您可以輕鬆審計、恢復或分享任何一個特定時間點的對話記錄。
 
-本插件的核心是 **“自動化思維鏈日誌”** 與 **“手動匯出分享”** 相結合，提供從偵錯到歸檔的全鏈路解決方案。
+## 🚀 功能亮點
 
-### 1. 全自動後台日誌 (核心功能)
+- **🧠 全自動思維鏈捕獲**: 在後台靜默運行，自動捕獲並將包含思維鏈（Reasoning）的對話保存為結構化的本地日誌。
+- **💾 增量式雲端歸檔**: 通過 `/memohina` 命令，可將**新增的**會話記錄一鍵增量上傳至 Cloudflare R2，並生成公開訪問鏈接及個性化 QR CODE。
+- **⚡️ 即時偵錯與回溯**: 使用 `/think` 命令，可立即在聊天窗口中查看模型的“上一次”思考過程，便於快速診斷和調試。
+- **🎨 高度個性化QR CODE**: 生成分享鏈接時，附帶的 QR CODE 支援豐富的自定義選項，包括碼點形狀、圖片蒙版和中心 Logo，讓每一次分享都與眾不同。
+- **🛡️ 雙重防護機制**: 結合了命令冷卻與增量檢查，能智能處理用戶的連續請求，杜絕任何不必要的資源浪費。
 
-- **靜默記錄**: 插件在後台自動運行，當檢測到語言模型返回的響應中包含思維鏈（Reasoning）時，會立即將該次對話的完整上下文（用戶提問、模型回答、思維鏈詳情）保存為本地日誌。
-- **持久化存儲**: 所有日誌均按會話（Session）進行分類和輪轉存檔，確保歷史記錄的完整性和易於管理。
+## 📋 命令列表
 
-### 2. 即時偵錯與回溯
+- `/think` (別名: `思考`, `思維鏈`)
+  - **功能**: 顯示上一次對話的思維鏈。如果內容過長，會自動截斷並將完整內容保存為本地 `.json` 檔案。
+  - **冷卻**: 默認冷卻時間為 30 秒。
 
-- **`/think` 指令**: 當您想快速查看模型“剛剛”是如何思考的時候，使用此指令可立即在聊天窗口中顯示 **上一次對話** 的思維鏈。如果內容過長，會自動進行截斷顯示，同時將完整的思維鏈匯出為單獨的 `.json` 文件存放在本地，方便您深入分析。
+- `/memohina` (別名: `導出思維`, `導出思考`, `導出思維鏈`, `記憶`, `导出会话`)
+  - **功能**: **增量導出**。將自上次導出以來所有**新增的**對話記錄上傳至 R2，並返回一個指向本次增量快照的分享鏈接和個性化 QR CODE。單次導出的記錄上限可在配置中設定。
+  - **冷卻**: 默認冷卻時間為 600 秒 (10 分鐘)。
 
-### 3. 會話匯出與個性化分享
+## ⚙️ 配置詳解
 
-- **`/memohina` 指令**: 這是用於正式分享和歸檔的強大工具。它會將 **當前整個會話** 的所有日誌記錄打包上傳至您配置的 Cloudflare R2 桶，並生成一個公開的分享 Link。
-- **個性化 QR 碼工坊**: 在生成分享鏈接的同時，插件會創建一個高度自定義的 QR 碼，您可以：
-    - **自由塑形**: 定義碼點形狀（`方塊`、`圓角`、`圓點`）和邊框。
-    - **自由紋理**: 使用您喜歡的圖片作為 **圖片蒙版**。
-    - **自由標識**: 在中心嵌入您的專屬 **Logo**。
+所有配置項均位於插件配置檔案的 `Hina Think` 分區下。
 
-## 配置
+### 1. 通用設定 (`general`)
 
-### 1. 通用設置 (`general`)
+- `think_cooldown_seconds` (int, 默認: `30`): `/think` 命令的冷卻時間（秒）。
+- `memohina_cooldown_seconds` (int, 默認: `600`): `/memohina` 命令的冷卻時間（秒）。
+- `memohina_export_record_count` (int, 默認: `100`): 使用 `/memohina` 命令單次導出的最大記錄數量。
+- `max_think_length` (int, 默認: `800`): `/think` 命令在聊天窗口中顯示思維鏈的最大字符數，超出部分會被截斷。
 
--   **存儲目錄 (`storage_dir`)**：存儲匯出 HTML 文件的本地臨時目錄。默認為插件目錄下的 `hina_thoughts_data`。
+### 2. 持久化設定 (`persistence`)
 
-### 2. R2 存儲設置 (`r2`)
+- `enable_persistence` (bool, 默認: `true`): 是否啟用對話記錄的持久化存儲。
+- `storage_dir` (string, 默認: `hina_thoughts_data`): 存儲日誌和臨時檔案的本地目錄名，位於插件數據資料夾內。
+- `log_rotation_count` (int, 默認: `20`): 每個用戶會話保留的輪轉日誌檔案數量。
+- `save_interval_seconds` (int, 默認: `60`): 自動保存非活躍用戶數據的檢查間隔（秒）。
+- `user_inactivity_timeout_seconds` (int, 默認: `300`): 判斷用戶為“非活躍”狀態的超時時間（秒）。
+- `upload_cache_size` (int, 默認: `1000`): R2 上傳歷史記錄的緩存大小（條）。
 
--   **Endpoint URL (`r2_endpoint_url`)**
--   **Access Key ID (`r2_access_key_id`)**
--   **Secret Access Key (`r2_secret_access_key`)**
--   **存儲桶名稱 (`r2_bucket_name`)**
--   **公共訪問域名 (`r2_public_domain`)**
+### 3. R2 存儲設定 (`r2`)
 
-這些是連接到 Cloudflare R2 所需的憑證和信息。請確保填寫正確，以便文件能成功上傳和通過公共域名訪問。
+- `r2_account_id` (string): Cloudflare R2 的 Account ID。
+- `r2_access_key_id` (string): R2 的 Access Key ID。
+- `r2_secret_access_key` (string): R2 的 Secret Access Key。
+- `r2_bucket_name` (string): 用於存儲日誌的 R2 存儲桶名稱。
+- `r2_custom_domain` (string, 可選): R2 存儲桶綁定的公共訪問域名。
 
-### 3. QR Code 樣式 (`qrcode`)
+### 4. QR Code 樣式 (`qrcode`)
 
-本插件提供了豐富的 QR 碼個性化選項，讓您的分享與眾不同。
-
--   **碼點大小 (`qr_box_size`)**：控制 QR 碼每個模塊（黑白點）的像素大小。數值越大，生成的圖片尺寸越大。
--   **邊框寬度 (`qr_border`)**：控制 QR 碼四周空白邊框的寬度。
--   **碼點形狀 (`qr_module_drawer`)**：設置碼點的樣式，支持以下幾種預設：
-    -   `square`：經典實心方塊
-    -   `gapped`：帶有間隙的方塊
-    -   `circle`：圓點
-    -   `rounded`：圓角方塊
--   **圖片蒙版 (`qr_image_mask_path`)**：為 QR 碼應用圖片紋理。碼點將以蒙版圖片的樣式呈現。支持**本地文件路徑**或**網絡圖片 URL**。
--   **中心 LOGO (`qr_logo_path`)**：在 QR 碼的中心嵌入一個 Logo。插件會自動提高容錯率以確保可掃描性。同樣支持**本地文件路徑**或**網絡圖片 URL**。
+- `qr_box_size` (int, 默認: `5`): QR 碼每個模塊（碼點）的像素大小。
+- `qr_border` (int, 默認: `2`): QR 碼四周空白邊框的寬度。
+- `qr_module_drawer` (string, 默認: `square`): 碼點的形狀。可選值: `square`, `gapped`, `circle`, `rounded`。
+- `qr_image_mask_path` (string, 可選): 圖片蒙版的路徑，支援**本地檔案**或**網絡 URL**。
+- `qr_logo_path` (string, 可選): 中心 Logo 的路徑，支援**本地檔案**或**網絡 URL**。
 
 > [!NOTE]
-> 當使用圖片蒙版時，背景會被設置為透明。您可以同時使用圖片蒙版和中心 Logo，創造出獨一無二的視覺效果。
+> 當使用圖片蒙版時，背景會被自動設為透明。您可以同時使用圖片蒙版和中心 Logo，創造出獨一無二的視覺效果。
 
-## 許可證
+## 📦 依賴與許可
 
-本插件使用了以下第三方套件：
+本插件使用了以下第三方庫，感謝它們的開發者：
 
-| 套件       | 授權       | 來源                                               |
+| 庫         | 授權       | 倉庫地址                                           |
 |------------|------------|----------------------------------------------------|
 | boto3      | Apache 2.0 | https://github.com/boto/boto3                      |
-| qrcode[pil]| BSD / HPND | https://github.com/lincolnloop/python-qrcode      |
-| Pillow     | HPND       | https://github.com/python-pillow/Pillow           |
+| qrcode[pil]| BSD        | https://github.com/lincolnloop/python-qrcode       |
+| Pillow     | HPND       | https://github.com/python-pillow/Pillow            |
