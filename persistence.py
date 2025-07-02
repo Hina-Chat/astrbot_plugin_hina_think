@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional, List, Coroutine
 
 import aiofiles
 
-from .utils import _simplify_user_key
+
 
 class PersistenceManager:
     """Manages all data persistence, including file I/O and caching."""
@@ -99,8 +99,27 @@ class PersistenceManager:
             return
 
         user_key = record.get('user_key', 'unknown_session')
-        simple_key = _simplify_user_key(user_key)
-        session_dir = self.storage_dir / 'session' / simple_key
+
+        # Update in-memory cache first for immediate availability to /think
+        self.records[user_key] = record
+        # Trigger a debounced save to persist the cache to disk later
+        self._manage_user_save_task(user_key)
+        # New path logic based on user_key (e.g., 'ID/scene')
+        try:
+            session_id, scene = user_key.split('/', 1)
+        except ValueError:
+            self.logger.warning(f"R1Filter: Malformed user_key '{user_key}', using fallback directory.")
+            sanitized_key = user_key.replace('/', '_')
+            session_dir = self.storage_dir / 'malformed' / sanitized_key
+        else:
+            if scene == 'group':
+                session_dir = self.storage_dir / 'GP' / session_id
+            elif scene == 'dm':
+                session_dir = self.storage_dir / 'DM' / session_id
+            else:
+                self.logger.warning(f"R1Filter: Unknown scene '{scene}' in user_key, using fallback directory.")
+                sanitized_key = user_key.replace('/', '_')
+                session_dir = self.storage_dir / 'other' / sanitized_key
         try:
             session_dir.mkdir(parents=True, exist_ok=True)
         except OSError as e:
@@ -108,7 +127,8 @@ class PersistenceManager:
             return
 
         log_files = sorted(session_dir.glob('*.json'), key=os.path.getmtime, reverse=True)
-        current_log_file_path = session_dir / f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        # Use the new filename format without 'export_' prefix.
+        current_log_file_path = session_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         log_data = []
 
         if log_files:
@@ -163,8 +183,22 @@ class PersistenceManager:
 
     async def get_records_since(self, user_key: str, last_timestamp_iso: str, limit: int) -> List[Dict[str, Any]]:
         """從用戶的日誌檔案中獲取指定時間戳之後的所有記錄。"""
-        simple_key = _simplify_user_key(user_key)
-        session_dir = self.storage_dir / 'session' / simple_key
+        # New path logic based on user_key (e.g., 'ID/scene')
+        try:
+            session_id, scene = user_key.split('/', 1)
+        except ValueError:
+            self.logger.warning(f"R1Filter: Malformed user_key '{user_key}', using fallback directory.")
+            sanitized_key = user_key.replace('/', '_')
+            session_dir = self.storage_dir / 'malformed' / sanitized_key
+        else:
+            if scene == 'group':
+                session_dir = self.storage_dir / 'GP' / session_id
+            elif scene == 'dm':
+                session_dir = self.storage_dir / 'DM' / session_id
+            else:
+                self.logger.warning(f"R1Filter: Unknown scene '{scene}' in user_key, using fallback directory.")
+                sanitized_key = user_key.replace('/', '_')
+                session_dir = self.storage_dir / 'other' / sanitized_key
         if not session_dir.exists():
             return []
 

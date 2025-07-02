@@ -2,5 +2,5 @@ name: Hina Think
 desc: 一個 AstrBot 模組，專注於捕獲並匯出 AI 的思維鏈。
 help:  
 version: v2.0.0
-author: Soulter/Magstic Powered by Claude 4s & Gemini 2.5 Pro
+author: Soulter/Magstic, Claude 4s & Gemini 2.5 Pro
 repo: https://github.com/Magstic/astrbot_plugin_hina_think

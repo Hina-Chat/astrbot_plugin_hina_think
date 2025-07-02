@@ -10,7 +10,7 @@ import traceback
 from pathlib import Path
 from datetime import datetime
 from collections import OrderedDict
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Tuple
 
 import aiofiles
 
@@ -18,14 +18,13 @@ from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 from astrbot.api.provider import LLMResponse
 from .r2_upload import upload_file_to_r2, R2UploadError
-from . import utils
 from . import qr_generator
 from .persistence import PersistenceManager
 from openai.types.chat.chat_completion import ChatCompletion
 
 @register(
     "hina_think",
-    "Soulter/Magstic Powered by Claude 4s & Gemini 2.5 Pro",
+    "Soulter/Magstic, Claude 4s & Gemini 2.5 Pro",
     "一個 AstrBot 模組，專注於捕獲並匯出 AI 的思維鏈。",
     "2.0.0"
 )
@@ -80,6 +79,12 @@ class R1Filter(Star):
 
     def _extract_reasoning(self, response: LLMResponse) -> Optional[str]:
         """從 LLM 響應中提取推理內容 (reasoning_content)"""
+        # 优先通过 getattr 检查动态添加的属性（我们为 Gemini 开辟的新通道）
+        reasoning = getattr(response, 'reasoning_content', None)
+        if reasoning:
+            return reasoning
+
+        # 如果新通道没内容，则回退到旧的、解析原始响应的逻辑（兼容 DeepSeek）
         try:
             if not isinstance(response.raw_completion, ChatCompletion):
                 return None
@@ -95,98 +100,85 @@ class R1Filter(Star):
     @filter.on_llm_response()
     async def resp(self, event: AstrMessageEvent, response: LLMResponse):
         """攔截LLM響應，提取並保存思維鏈及對話記錄。"""
-            
         reasoning_content = self._extract_reasoning(response)
         if not reasoning_content:
             return
 
-        user_key = await self._get_user_key(event)
-            
-        record = {
-            'user_key': user_key, # For context in log files
-            'reasoning': reasoning_content,
-            'response': response.completion_text or "",
-            'user_message': getattr(event, 'message_str', ''),
-            'timestamp': datetime.now().isoformat(),
-            'user_id': str(event.unified_msg_origin)
-        }
-            
-        # Delegate to PersistenceManager
-        if self.persistence.enable_persistence:
-            # Log to file
-            asyncio.create_task(self.persistence.log_thought(record))
-            # Update in-memory cache
-            self.persistence.records[user_key] = record
-            # Trigger debounced save
-            self.persistence._manage_user_save_task(user_key)
+        user_key, trigger_user_id = await self._get_user_key(event)
 
-    async def _get_user_key(self, event: AstrMessageEvent) -> str:
-        """生成使用者+會話的唯一鍵（原始）"""
-        uid = event.unified_msg_origin
-        try:
-            curr_cid = await self.context.conversation_manager.get_curr_conversation_id(uid)
-            return f"{uid}_{curr_cid}"
-        except Exception:
-            return str(uid) # 備份方案
+        record = {
+            "user_key": user_key,  # session_id/scene
+            "trigger_user_id": trigger_user_id, # The actual user who sent the message
+            "reasoning": reasoning_content,
+            "response": response.completion_text or "",
+            "user_message": event.get_message_str(),
+            "timestamp": datetime.now().isoformat(),
+            "session_id": event.get_session_id(), # For backward compatibility or analysis
+        }
+        await self.persistence.log_thought(record)
+
+    async def _get_user_key(self, event: AstrMessageEvent) -> Tuple[str, str]:
+        """
+        生成用於存儲和檢索的會話密鑰，並返回消息的觸發者ID。
+
+        :return: A tuple containing (user_key, trigger_user_id)
+                 - user_key (str): The key for the conversation log, e.g., 'GROUP_ID/group'.
+                 - trigger_user_id (str): The ID of the user who sent the message.
+        """
+        session_id = str(event.get_session_id())
+        trigger_user_id = str(event.get_sender_id())
+        scene = "group" if "group" in str(event.unified_msg_origin).lower() else "dm"
+
+        # The key is always based on the session ID to group conversations correctly.
+        user_key = f"{session_id}/{scene}"
+
+        return user_key, trigger_user_id
 
     @filter.command("think", alias={'思考', '思維'})
     async def think_command(self, event: AstrMessageEvent):
-        # --- /think 命令冷卻時間檢查 ---
+        user_key, trigger_user_id = await self._get_user_key(event)
+
+        # --- Cooldown Check (based on the session) ---
         if self.think_cooldown_seconds > 0:
             now = time.time()
-            user_key = await self._get_user_key(event)
+            last_used = self._think_last_used.get(user_key, 0)
+            if now - last_used < self.think_cooldown_seconds:
+                remaining = self.think_cooldown_seconds - (now - last_used)
+                yield event.plain_result(f"{remaining:.1f} 後，可一窺本質。")
+                return
+            self._think_last_used[user_key] = now
 
-        # Cooldown Check
-        now = time.time()
-        last_used = self._think_last_used.get(user_key, 0)
-        if now - last_used < self.think_cooldown_seconds:
-            remaining = self.think_cooldown_seconds - (now - last_used)
-            yield event.plain_result(f"{remaining:.1f} 後，可一窺本質。")
-            return
-        self._think_last_used[user_key] = now
-
-        # Get the last record from PersistenceManager's cache
+        # Get the last record from the entire session's cache
         last_record = self.persistence.get_last_thought(user_key)
 
         if not last_record:
-            yield event.plain_result("過度的思考，也可能是一種厄運呢。")
+            yield event.plain_result("我還沒有思考過什麼……")
             return
 
-        reasoning = last_record.get('reasoning', '沒有找到想法內容。')
-        timestamp = last_record.get('timestamp', '未知時間')
+        reasoning = last_record.get('reasoning', '這次我沒有留下思考的痕跡。')
+        if len(reasoning) > self.max_think_length:
+            reasoning = reasoning[:self.max_think_length] + "..."
+        
+        yield event.plain_result(f"""Hina 的思考:
+---
+{reasoning}""")
 
-        # Format timestamp
-        try:
-            dt_object = datetime.fromisoformat(timestamp)
-            formatted_time = dt_object.strftime('%Y-%m-%d %H:%M:%S')
-        except (ValueError, TypeError):
-            formatted_time = timestamp
-
-        # Build think text
-        think_text = (
-            f"--- Hina Think ---\n"
-            f"時間: {formatted_time}\n\n"
-            f"{reasoning}"
-        )
-
-        yield event.plain_result(think_text)
-
-    @filter.command("memohina", alias={"存档", "存檔"})
+    @filter.command("memohina", alias={'導出hina思考', '導出hina記憶'})
     async def memohina_command(self, event: AstrMessageEvent):
         """Exports the user's thought records, providing an R2 download link and QR code."""
         temp_log_path = None
         try:
-            user_key = await self._get_user_key(event)
-            simple_key = utils._simplify_user_key(user_key)
+            user_key, trigger_user_id = await self._get_user_key(event)
 
-            # 1. Cooldown Check
-            now = time.time()
-            last_used = self._memohina_last_used.get(user_key, 0)
-            if now - last_used < self.memohina_cooldown_seconds:
-                remaining = self.memohina_cooldown_seconds - (now - last_used)
-                yield event.plain_result(f"{remaining:.1f} 後，可裝訂記憶。")
-                return
-            self._memohina_last_used[user_key] = now
+            # 1. Cooldown Check (based on the session)
+            if self.memohina_cooldown_seconds > 0:
+                now = time.time()
+                last_used = self._memohina_last_used.get(user_key, 0)
+                if now - last_used < self.memohina_cooldown_seconds:
+                    remaining = self.memohina_cooldown_seconds - (now - last_used)
+                    yield event.plain_result(f"記憶之匣尚在冷卻，請於 {remaining:.1f} 秒後再試。")
+                    return
+                self._memohina_last_used[user_key] = now
 
             # 2. Get last export breakpoint from persistence
             last_upload_info = self.persistence.get_last_upload_info(user_key) or {}
@@ -221,10 +213,24 @@ class R1Filter(Star):
                 yield event.plain_result("嗯…… R2 似乎有所不妥。")
                 return
 
-            # 7. Create a stable and unique R2 object key
+            # 7. Create a stable and unique R2 object key using the new path logic
             now_str = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"export_{now_str}.json"
-            object_key = f"hina_memory/{simple_key}/{filename}"
+            filename = f"{now_str}.json"
+
+            try:
+                session_id, scene = user_key.split('/', 1)
+                if scene == 'group':
+                    r2_path_prefix = f"GP/{session_id}"
+                elif scene == 'dm':
+                    r2_path_prefix = f"DM/{session_id}"
+                else:
+                    # Fallback for unknown scenes, preserving original user_key but sanitizing it
+                    r2_path_prefix = f"other/{user_key.replace('/', '_')}"
+            except ValueError:
+                # Fallback for malformed user_key, sanitizing it
+                r2_path_prefix = f"malformed/{user_key.replace('/', '_')}"
+
+            object_key = f"hina_memory/{r2_path_prefix}/{filename}"
             self.logger.info(f"R1Filter: Uploading to R2 with stable object key: {object_key} for user {user_key}")
 
             r2_url = await asyncio.to_thread(
