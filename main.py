@@ -15,19 +15,12 @@ from typing import Any, Dict, Optional, List, Tuple
 import aiofiles
 
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.star import Context, Star, register
+from astrbot.api.star import Context, Star
 from astrbot.api.provider import LLMResponse
 from .r2_upload import upload_file_to_r2, R2UploadError
 from . import qr_generator
 from .persistence import PersistenceManager
 from openai.types.chat.chat_completion import ChatCompletion
-
-@register(
-    "hina_think",
-    "Soulter/Magstic, Claude 4s & Gemini 2.5 Pro",
-    "一個 AstrBot 模組，專注於捕獲並匯出 AI 的思維鏈。",
-    "2.0.0"
-)
 
 class R1Filter(Star):
     def __init__(self, context: Context, config: dict):
