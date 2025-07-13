@@ -1,23 +1,19 @@
 import os
-import io
 import time
 import json
 import asyncio
 import logging
-import hashlib
 import tempfile
 import traceback
 from pathlib import Path
 from datetime import datetime
-from collections import OrderedDict
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Dict, Optional, Tuple
 
-import aiofiles
 
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star
 from astrbot.api.provider import LLMResponse
-from .r2_upload import upload_file_to_r2, R2UploadError
+from .r2_upload import upload_file_to_r2
 from . import qr_generator
 from .persistence import PersistenceManager
 from openai.types.chat.chat_completion import ChatCompletion
