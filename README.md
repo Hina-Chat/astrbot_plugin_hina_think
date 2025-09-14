@@ -10,7 +10,7 @@ Powered by Claude 4s & Gemini 2.5 Pro, **All**.
 
 ## 功能亮點
 
-- 在背景靜默運行，自動捕獲對話並將其存為 JSON 檔。
+- 在背景靜默運行，自動捕獲對話並保存至 SQLite（可用 `/memohina` 導出為 JSON）。
 - 使用 `/memohina` 指令，可將 Session 記錄增量上載至 R2，並生成公開訪問的 QR Code。
 - 使用 `/think` 指令，可立即檢視模型『本次』的思考過程，便於快速調試人格提示詞。
 - QR CODE 支援有限的樣式自訂，包括碼點形狀、圖片蒙版和中心 Logo。
@@ -39,19 +39,15 @@ Powered by Claude 4s & Gemini 2.5 Pro, **All**.
 
 ### 2. 持久化與 R2 存儲設定 (`persistence` & `r2`)
 
-| 參數 (Parameter)                    | 類型 (Type) | 說明 (Description)                                     | 預設值 (Default)       |
-| ----------------------------------- | ----------- | ------------------------------------------------------ | ---------------------- |
-| `enable_persistence`                | `bool`      | 是否啟用對話記錄的持久化存儲。                         | `true`                 |
-| `storage_dir`                       | `string`    | 存儲日誌和臨時檔案的本地目錄名，位於插件數據資料夾內。 | `hina_thoughts_data`   |
-| `log_rotation_count`                | `int`       | 每個用戶 Session 保留的輪轉日誌檔案數量。              | `20`                   |
-| `save_interval_seconds`             | `int`       | 自動保存非活躍用戶數據的檢查間隔（秒）。               | `60`                   |
-| `user_inactivity_timeout_seconds`   | `int`       | 判斷用戶為“非活躍”狀態的超時時間（秒）。               | `300`                  |
-| `upload_cache_size`                 | `int`       | R2 上載歷史記錄的快取大小（條）。                      | `1000`                 |
-| `r2_account_id`                     | `string`    | Cloudflare 的 Account ID。                             | `N/A`                  |
-| `r2_access_key_id`                  | `string`    | R2 的 Access Key ID。                                  | `N/A`                  |
-| `r2_secret_access_key`              | `string`    | R2 的 Secret Access Key。                              | `N/A`                  |
-| `r2_bucket_name`                    | `string`    | 用於存儲日誌的 R2 桶名稱。                             | `N/A`                  |
-| `r2_custom_domain`                  | `string`    | R2 桶綁定的公共訪問域名 (可選)。                       | `N/A`                  |
+| 參數 (Parameter)                    | 類型 (Type) | 說明 (Description)                                                     | 預設值 (Default)     |
+| ----------------------------------- | ----------- | ---------------------------------------------------------------------- | -------------------- |
+| `enable_persistence`                | `bool`      | 是否啟用對話記錄的持久化存儲（SQLite）。資料庫位於 AstrBot 為插件分配的專屬資料目錄下。 | `true`               |
+| `upload_cache_size`                 | `int`       | R2 上載歷史記錄的快取大小（條）。                                      | `1000`               |
+| `r2_account_id`                     | `string`    | Cloudflare 的 Account ID。                                             | `N/A`                |
+| `r2_access_key_id`                  | `string`    | R2 的 Access Key ID。                                                  | `N/A`                |
+| `r2_secret_access_key`              | `string`    | R2 的 Secret Access Key。                                              | `N/A`                |
+| `r2_bucket_name`                    | `string`    | 用於存儲導出檔案的 R2 桶名稱。                                         | `N/A`                |
+| `r2_custom_domain`                  | `string`    | R2 桶綁定的公共訪問域名 (可選)。                                       | `N/A`                |
 
 ### 3. QR Code 樣式 (`qrcode`)
 

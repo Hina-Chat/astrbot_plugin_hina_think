@@ -12,50 +12,26 @@
             "think_cooldown_seconds": {
                 "description": "/think 命令冷卻時間（秒）",
                 "type": "int",
-                "default": 600,
+                "default": 30,
                 "hint": "設置 /think 命令的冷卻時間，以防止用戶連續使用。在冷卻時間內，指令將被靜默忽略。"
             },
             "memohina_cooldown_seconds": {
                 "description": "/memohina 命令冷卻時間（秒）",
                 "type": "int",
-                "default": 60,
+                "default": 600,
                 "hint": "設置 /memohina 命令的冷卻時間，以防止用戶連續使用。在冷卻時間內，指令將被靜默忽略。"
             },
             "memohina_export_record_count": {
-                "description": "導出日誌條數",
+                "description": "導出記錄條數",
                 "type": "int",
                 "default": 100,
-                "hint": "使用 /memohina 命令時，導出的對話記錄數量。這有助於控制導出文件的大小和命令處理的開銷。"
+                "hint": "使用 /memohina 命令時，導出的記錄數量。這有助於控制導出文件的大小和命令處理的開銷。"
             },
             "enable_persistence": {
                 "description": "啟用持久化",
                 "type": "bool",
                 "default": true,
                 "hint": "是否將聊天記錄和狀態保存到磁盤。"
-            },
-            "save_interval_seconds": {
-                "description": "活躍期間保存間隔（秒）",
-                "type": "int",
-                "default": 60,
-                "hint": "當用戶處於活躍狀態時，系統會每隔這麼多秒保存一次數據。"
-            },
-            "user_inactivity_timeout_seconds": {
-                "description": "用戶不活躍超時時間（秒）",
-                "type": "int",
-                "default": 300,
-                "hint": "如果用戶在此時間內沒有發送任何新消息，系統將自動停止為其運行的保存任務，以節省資源。下次聊天時會自動重啟。"
-            },
-            "storage_dir": {
-                "description": "日誌檔儲存目錄",
-                "type": "text",
-                "default": "",
-                "hint": "思維鏈檔案的儲存目錄。留空則預設在插件目錄下的 hina_thoughts_data 資料夾。"
-            },
-            "log_rotation_count": {
-                "description": "日誌檔最大條數",
-                "type": "int",
-                "default": 20,
-                "hint":"每個思維鏈日誌檔案中儲存的最大記錄數量。達到此數量後會創建新檔案。設為 0 或負數可禁用日誌記錄。"
             },
             "upload_cache_size": {
                 "description": "上傳快取大小",

@@ -17,6 +17,7 @@ from .r2_upload import upload_file_to_r2
 from . import qr_generator
 from .persistence import PersistenceManager
 from openai.types.chat.chat_completion import ChatCompletion
+from astrbot.core.star.star_tools import StarTools
 
 class R1Filter(Star):
     def __init__(self, context: Context, config: dict):
@@ -32,15 +33,13 @@ class R1Filter(Star):
         self.memohina_export_record_count = general_config.get('memohina_export_record_count', 100)
         self.max_think_length = general_config.get('max_think_length', 800)
 
-        # --- Setup persistence ---
-        # The data path is relative to this file's location, which is a robust way.
-        plugin_data_path = Path(__file__).parent / "data"
-        plugin_data_path.mkdir(exist_ok=True)  # Ensure the directory exists
+        # --- Setup persistence (use AstrBot StarTools plugin data dir) ---
+        self.data_dir = StarTools.get_data_dir()
 
         self.persistence = PersistenceManager(
             config=self.config,
             logger=self.logger,
-            data_path=plugin_data_path
+            data_path=self.data_dir,
         )
 
         
@@ -139,6 +138,9 @@ class R1Filter(Star):
 
         # Get the last record from the entire session's cache
         last_record = self.persistence.get_last_thought(user_key)
+        # Fallback to SQLite when cache is empty (e.g., after restart)
+        if not last_record:
+            last_record = await self.persistence.get_last_thought_async(user_key)
 
         if not last_record:
             yield event.plain_result("我還沒有思考過什麼……")
@@ -169,8 +171,8 @@ class R1Filter(Star):
                     return
                 self._memohina_last_used[user_key] = now
 
-            # 2. Get last export breakpoint from persistence
-            last_upload_info = self.persistence.get_last_upload_info(user_key) or {}
+            # 2. Get last export breakpoint from persistence (async, backed by SQLite)
+            last_upload_info = await self.persistence.get_last_upload_info_async(user_key) or {}
             breakpoint_timestamp = last_upload_info.get('breakpoint_timestamp')
 
             records = await self.persistence.get_records_since(

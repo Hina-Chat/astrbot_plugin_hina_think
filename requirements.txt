@@ -1,2 +1,4 @@
 boto3
 qrcode[pil]
+aiosqlite
+aiohttp
